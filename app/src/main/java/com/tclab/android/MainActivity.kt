@@ -699,19 +699,19 @@ fun ProtocolWorkspace(plant: String) {
             singleLine = false
         ) { notes = it }
 
+        
         Button(
             onClick = {
                 if (title.isBlank()) {
                     message = "Enter a protocol title first."
                 } else {
-                    protocols = protocols + ProtocolEntry(
+                    val updated = protocols + ProtocolEntry(
                         title.trim(),
                         source.trim(),
                         notes.trim()
                     )
-
-                    saveProtocols(context, plant, protocols)
-
+                    saveProtocols(context, plant, updated)
+                    protocols = updated
                     title = ""
                     source = ""
                     notes = ""
@@ -719,4 +719,93 @@ fun ProtocolWorkspace(plant: String) {
                 }
             },
             modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Save Protocol")
+        }
+
+        if (message.isNotBlank()) {
+            Text(message, color = LabMint, fontSize = 13.sp)
+        }
+
+        Text(
+            "SAVED PROTOCOLS (${protocols.size})",
+            color = LabMint,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp
         )
+
+        if (protocols.isEmpty()) {
+            Text(
+                "No protocols saved for this plant yet.",
+                color = LabMuted,
+                fontSize = 13.sp
+            )
+        } else {
+            protocols.forEachIndexed { index, protocol ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = LabSurface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            "${index + 1}. ${protocol.title}",
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        if (protocol.source.isNotBlank()) {
+                            Text(
+                                "Source: ${protocol.source}",
+                                color = LabMint,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        if (protocol.notes.isNotBlank()) {
+                            Text(protocol.notes, color = LabMuted)
+                        }
+
+                        TextButton(
+                            onClick = {
+                                val updated = protocols.filterIndexed { i, _ ->
+                                    i != index
+                                }
+                                saveProtocols(context, plant, updated)
+                                protocols = updated
+                                message = "Protocol removed."
+                            }
+                        ) {
+                            Text("Delete protocol")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LabInput(
+    label: String,
+    value: String,
+    singleLine: Boolean = true,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 3,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LabMint,
+            focusedLabelColor = LabMint,
+            cursorColor = LabMint
+        )
+    )
+}
