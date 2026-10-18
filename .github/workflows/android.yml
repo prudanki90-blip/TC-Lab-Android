@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@4
               - name: Install TC Lab starter data
         run: |
           test -f tc-lab-data-bundle.zip
@@ -32,6 +32,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+        
 
       
       - name: Accept Android SDK licenses
