@@ -1,0 +1,150 @@
+
+# TC Lab — Technical Architecture
+
+## 1. Project Vision
+
+TC Lab is a separate, offline-first Android application for learning, planning, recording, and analyzing plant tissue culture experiments. It must never overwrite or interfere with SOAP LAB.
+
+The app should serve beginners while supporting increasingly advanced experiments. Initial crop priorities include Geneva apple rootstocks, pomegranate, and breadfruit.
+
+## 2. Core Principles
+
+- Offline-first: saved records and essential tools work without internet.
+- Persistent storage: records remain available after closing and reopening the app.
+- Scientific traceability: distinguish published evidence, user measurements, and educational guidance.
+- Safety: provide relevant chemical-handling, sterilization, storage, and waste warnings.
+- User control: provide export, import, backup, restore, and deliberate data deletion.
+- Versioning: preserve protocol versions and experiment history.
+- Clear interface: dark theme, accessible navigation, expandable details, and beginner-friendly explanations.
+
+## 3. Application Modules
+
+1. Dashboard: active cultures, tasks due today, upcoming tasks, overdue work, and recent observations.
+2. Plant Library: species, cultivars, genotype, source material, propagation stages, and challenges.
+3. Protocol Library: establishment, multiplication, rooting, and acclimatization methods.
+4. Media Lab: medium formulations, ingredients, concentrations, pH, preparation records, and sterilization details.
+5. Chemical Inventory: stock and working concentrations, units, hazards, storage, expiry, and quantities.
+6. Batch Manager: batch identifiers, source cultures, actual quantities, dates, stage changes, notes, and results.
+7. Culture Timeline: scheduled tasks, reminders, completed work, and overdue cultures.
+8. Equipment Planner: equipment inventory, safety requirements, estimated costs, suppliers, and purchase status.
+9. Calculators: medium scaling, dilution, unit conversion, and batch or plantlet cost.
+10. Research Intelligence: structured extraction from accessible publications, PDFs, URLs, or pasted text.
+11. Results and Analysis: multiplication rates, rooting percentage, contamination, acclimatization survival, and costs.
+12. Data Management: backup, export, import, restore, and deletion controls.
+
+## 4. Proposed Android Architecture
+
+Use a native Android application with a dark interface and a persistent local relational database.
+
+Separate the application into:
+- User interface and navigation.
+- Application logic and validation.
+- Local database and data-access layer.
+- File and image storage.
+- Reminder scheduling and notifications.
+- Optional online research and synchronization services.
+
+Choose and document the Android language, build tools, minimum supported Android version, and dependencies before implementing the first app code. Keep the build reproducible through GitHub.
+
+## 5. Local Storage and Data Ownership
+
+Store structured records in an app-local database. Store photographs and attachments in app-private file storage and link them to database records.
+
+The app must provide user-controlled export and backup files that can be saved to a location selected on the phone. Support validated imports and restoration without silently overwriting existing data.
+
+Use database schema versions and controlled migrations when the app is updated. Explain that uninstalling the app may remove private local records, so important data should be backed up.
+
+Core workflows must not require an internet connection.
+
+## 6. Initial Database Tables
+
+- species: plant species, cultivar, genotype, and propagation details.
+- protocols: protocol name, stage, instructions, timing rules, version, and review status.
+- protocol_sources: publication details, source URL, retrieval date, and evidence quality.
+- chemicals: identity, stock concentration, working concentration, units, hazards, storage, and expiry.
+- media_formulations: ingredients, quantities, units, pH, gelling agent, and preparation method.
+- equipment: inventory, specifications, safety notes, and purchase status.
+- batches: batch ID, species, source, protocol version, start date, and current stage.
+- batch_tasks: task type, due date, reminders, status, and completion history.
+- observations: date, culture stage, growth, contamination, measurements, and notes.
+- culture_lineage: parent batch, child batch, and generation number.
+- batch_images: image location, associated batch, observation, and capture date.
+- experiment_results: multiplication, rooting, survival, contamination, and cost measurements.
+
+Use unique identifiers and relationships between tables. Record units explicitly and preserve original measurements.
+
+## 7. Protocol Scheduler and Culture Timeline
+
+When a batch is started, offer to generate tasks from the selected protocol.
+
+Tasks may include observations, contamination checks, medium changes, transfers, rooting checks, and acclimatization reviews.
+
+Each task should support:
+- Batch and protocol version.
+- Recommended interval and scheduled date/time.
+- Planned, due, completed, skipped, or overdue status.
+- Advance reminders and recurring checks when configured.
+- Completion timestamp, notes, and rescheduling reason.
+- Local notifications, subject to Android permissions and system restrictions.
+
+Use the Android phone's local date, time, and time zone. Preserve the scientific interval separately from the chosen due date. Do not assume that every culture requires a medium change after 28–30 days. Flag missing or ambiguous protocol timings for review.
+
+Support recovery after device restart and handle time-zone changes without silently altering the intended interval. Keep unfinished tasks visible.
+
+## 8. Scientific Evidence and Research Intelligence
+
+Clearly distinguish:
+1. Published information.
+2. The user's own experimental measurements.
+3. Educational guidance or unverified suggestions.
+
+Where available, record species, cultivar/genotype, culture stage, medium, ingredient concentrations, units, pH, culture conditions, outcomes, source citation, and protocol version.
+
+The research extractor should accept accessible URLs, PDFs, and pasted text. Extract structured fields and point to the original page, table, or passage where possible. Mark missing, conflicting, or ambiguous values instead of inventing them.
+
+Require user review before extracted values become an approved protocol or are transferred into a working formulation or batch.
+
+Respect copyright and access restrictions. Store citations and structured notes rather than reproducing entire copyrighted publications without permission.
+
+Tissue culture alone does not guarantee pathogen-free plants, and a protocol may not work equally well across genotypes.
+
+## 9. Calculators, Chemicals, and Safety
+
+Calculators must display inputs, units, assumptions, and results. Validate units and required values before calculations.
+
+Distinguish concentrated stock products from final working solutions. Include appropriate safety, storage, expiry, and waste-handling information for relevant chemicals.
+
+Provide safety guidance for sterilization equipment and clean working environments. Never recommend improvised pressure vessels as safe sterilization equipment.
+
+Do not silently correct scientific values or present uncertain recommendations as validated protocols.
+
+## 10. Online Features and Synchronization
+
+Add online research retrieval and optional synchronization after offline workflows are reliable.
+
+Future synchronization must use stable record IDs, timestamps, version tracking, and conflict review. Do not silently replace local experimental records with remote data.
+
+Network failures must not prevent access to saved batches, protocols, observations, or scheduled tasks.
+
+## 11. Development Milestones
+
+1. Finalize architecture and database schema.
+2. Create the native Android project, dark theme, navigation, and local database.
+3. Implement plant, protocol, chemical, medium, and equipment libraries.
+4. Implement batches, observations, images, culture lineage, and backup/export.
+5. Implement task scheduling, reminders, and overdue dashboard.
+6. Add validated calculators and results analysis.
+7. Add research extraction with citations and human review.
+8. Test offline use, restarts, notifications, time-zone changes, upgrades, and backup restoration.
+9. Add optional online retrieval and synchronization.
+
+## 12. Initial Acceptance Tests
+
+- The app opens and navigates without internet.
+- A batch and its observations remain after closing and reopening the app.
+- A reviewed protocol can generate tasks on the correct local dates.
+- Completing or rescheduling tasks preserves the history.
+- Overdue tasks remain visible.
+- Exported data can be restored into a test installation without silent data loss.
+- Published values, user measurements, and unreviewed suggestions remain distinguishable.
+- Database upgrades preserve existing records.
