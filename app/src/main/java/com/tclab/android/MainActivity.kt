@@ -75,21 +75,36 @@ private fun TCLabTheme(
 // in the following sections of this file.
 
 
+
 @Composable
 private fun TCLabApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val store = remember(context) {
+        CultureLabStore(context)
+    }
+
     var selectedScreen by remember {
         mutableStateOf("Home")
     }
 
-    var batches by remember {
-        mutableStateOf<List<CultureBatch>>(emptyList())
+    var batches by remember(context, store) {
+        mutableStateOf(store.loadBatches())
+    }
+
+    // Persist every batch-state change locally.
+    LaunchedEffect(batches) {
+        store.saveBatches(batches)
     }
 
     when (selectedScreen) {
         "Protocols", "Protocol Library" -> {
             ProtocolLibraryScreen(
                 onBatchCreated = { newBatch ->
-                    batches = batches + newBatch
+                    batches = batches.filterNot {
+                        it.id == newBatch.id
+                    } + newBatch
+
                     selectedScreen = "Timeline"
                 },
                 onBack = {
@@ -98,15 +113,19 @@ private fun TCLabApp() {
             )
         }
 
-        "Timeline", "Culture Timeline", "Tasks" -> {
+        "Timeline", "Culture Timeline", "Tasks", "Batches" -> {
             CultureTimelineScreen(
                 batches = batches,
                 onCompleteTask = { batchId, taskId, note ->
                     batches = batches.map { batch ->
-                        if (batch.id == batchId) {
+                        if (batch.id != batchId) {
+                            batch
+                        } else {
                             batch.copy(
                                 tasks = batch.tasks.map { task ->
-                                    if (task.id == taskId) {
+                                    if (task.id != taskId) {
+                                        task
+                                    } else {
                                         task.copy(
                                             completedAtMillis =
                                                 System.currentTimeMillis(),
@@ -114,37 +133,47 @@ private fun TCLabApp() {
                                             status =
                                                 CultureTaskStatus.COMPLETED
                                         )
-                                    } else {
-                                        task
                                     }
                                 }
                             )
-                        } else {
-                            batch
                         }
                     }
+
+                    store.recordHistory(
+                        taskId = taskId,
+                        action = "Completed",
+                        note = note
+                    )
                 },
-                onRescheduleTask = { batchId, taskId, newTime, note ->
+                onRescheduleTask = {
+                    batchId, taskId, newTime, note ->
+
                     batches = batches.map { batch ->
-                        if (batch.id == batchId) {
+                        if (batch.id != batchId) {
+                            batch
+                        } else {
                             batch.copy(
                                 tasks = batch.tasks.map { task ->
-                                    if (task.id == taskId) {
+                                    if (task.id != taskId) {
+                                        task
+                                    } else {
                                         task.copy(
                                             scheduledAtMillis = newTime,
                                             status =
                                                 CultureTaskStatus.RESCHEDULED,
                                             completionNote = note
                                         )
-                                    } else {
-                                        task
                                     }
                                 }
                             )
-                        } else {
-                            batch
                         }
                     }
+
+                    store.recordHistory(
+                        taskId = taskId,
+                        action = "Rescheduled",
+                        note = note
+                    )
                 },
                 onBack = {
                     selectedScreen = "Home"
@@ -166,7 +195,8 @@ private fun TCLabApp() {
 
                             "Timeline",
                             "Culture Timeline",
-                            "Tasks" -> "Timeline"
+                            "Tasks",
+                            "Batches" -> "Timeline"
 
                             else -> "Home"
                         }
@@ -176,6 +206,7 @@ private fun TCLabApp() {
         }
     }
 }
+
 
     
 
