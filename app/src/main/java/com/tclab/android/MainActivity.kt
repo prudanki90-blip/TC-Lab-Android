@@ -1,21 +1,17 @@
-
 package com.tclab.android
 
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
-import java.time.format.DateTimeParseException
 
 private fun workspacePrefs(context: Context): SharedPreferences =
     context.getSharedPreferences(
@@ -122,7 +118,10 @@ fun CalculatorScreen(onBack: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("TC LAB Calculators", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "TC LAB Calculators",
+            style = MaterialTheme.typography.headlineSmall
+        )
 
         OutlinedButton(onClick = onBack) {
             Text("Back")
@@ -136,22 +135,19 @@ fun CalculatorScreen(onBack: () -> Unit) {
         workspaceField(
             "Stock concentration (C1)",
             stockConcentration,
-            { stockConcentration = it },
-            singleLine = true
+            { stockConcentration = it }
         )
 
         workspaceField(
             "Target concentration (C2)",
             targetConcentration,
-            { targetConcentration = it },
-            singleLine = true
+            { targetConcentration = it }
         )
 
         workspaceField(
             "Final volume (V2, mL)",
             finalVolume,
-            { finalVolume = it },
-            singleLine = true
+            { finalVolume = it }
         )
 
         Text("Stock volume required: $dilutionResult")
@@ -159,20 +155,16 @@ fun CalculatorScreen(onBack: () -> Unit) {
         HorizontalDivider()
 
         Text("Molarity to Mass", style = MaterialTheme.typography.titleLarge)
-        Text("Mass (g) = molarity (mol/L) × molecular weight (g/mol) × volume (L).")
-
-        workspaceField(
-            "Molarity (mol/L)",
-            molarity,
-            { molarity = it }
+        Text(
+            "Mass (g) = molarity (mol/L) × molecular weight (g/mol) × volume (L)."
         )
 
+        workspaceField("Molarity (mol/L)", molarity, { molarity = it })
         workspaceField(
             "Molecular weight (g/mol)",
             molecularWeight,
             { molecularWeight = it }
         )
-
         workspaceField(
             "Solution volume (L)",
             solutionVolume,
@@ -185,5 +177,339 @@ fun CalculatorScreen(onBack: () -> Unit) {
                 "against a reliable laboratory protocol before preparing a solution.",
             style = MaterialTheme.typography.bodySmall
         )
+    }
+}
+
+@Composable
+fun NotebookWorkspace(plant: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val key = remember(plant) { workspaceKey("notebook", plant) }
+
+    var entries by remember(plant) {
+        mutableStateOf(readWorkspaceArray(context, key).toString())
+    }
+
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var refresh by remember { mutableIntStateOf(0) }
+
+    val records = remember(entries, refresh) {
+        try {
+            readWorkspaceArray(context, key)
+        } catch (_: Exception) {
+            JSONArray()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("$plant Research Notebook", style = MaterialTheme.typography.headlineSmall)
+        Text("Record observations, questions, methods and research findings.")
+
+        workspaceField("Entry title", title, { title = it })
+        workspaceField(
+            "Notes and observations",
+            notes,
+            { notes = it },
+            singleLine = false
+        )
+
+        Button(
+            onClick = {
+                if (title.isNotBlank() || notes.isNotBlank()) {
+                    val array = readWorkspaceArray(context, key)
+                    array.put(
+                        JSONObject()
+                            .put("title", title.trim())
+                            .put("notes", notes.trim())
+                            .put("date", LocalDate.now().toString())
+                    )
+                    saveWorkspaceArray(context, key, array)
+                    entries = array.toString()
+                    title = ""
+                    notes = ""
+                    refresh++
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Save notebook entry")
+        }
+
+        HorizontalDivider()
+        Text("Saved entries: ${records.length()}", style = MaterialTheme.typography.titleMedium)
+
+        for (i in records.length() - 1 downTo 0) {
+            val record = records.optJSONObject(i) ?: continue
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        workspaceText(record, "title").ifBlank { "Untitled entry" },
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(workspaceText(record, "date"))
+                    Text(workspaceText(record, "notes"))
+                    TextButton(
+                        onClick = {
+                            val updated = readWorkspaceArray(context, key)
+                            updated.remove(i)
+                            saveWorkspaceArray(context, key, updated)
+                            entries = updated.toString()
+                            refresh++
+                        }
+                    ) {
+                        Text("Delete entry")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CultureRecordWorkspace(plant: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val key = remember(plant) { workspaceKey("culture_records", plant) }
+
+    var batchName by remember { mutableStateOf("") }
+    var medium by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var observations by remember { mutableStateOf("") }
+    var refresh by remember { mutableIntStateOf(0) }
+
+    val records = remember(plant, refresh) {
+        readWorkspaceArray(context, key)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("$plant Culture Records", style = MaterialTheme.typography.headlineSmall)
+        Text("Track batches, culture medium and observations.")
+
+        workspaceField("Batch or culture ID", batchName, { batchName = it })
+        workspaceField("Medium / formulation", medium, { medium = it })
+        workspaceField("Start date (YYYY-MM-DD)", startDate, { startDate = it })
+        workspaceField(
+            "Observations",
+            observations,
+            { observations = it },
+            singleLine = false
+        )
+
+        Button(
+            onClick = {
+                if (batchName.isNotBlank()) {
+                    val array = readWorkspaceArray(context, key)
+                    array.put(
+                        JSONObject()
+                            .put("batch", batchName.trim())
+                            .put("medium", medium.trim())
+                            .put("startDate", startDate.trim())
+                            .put("observations", observations.trim())
+                            .put("status", "Active")
+                    )
+                    saveWorkspaceArray(context, key, array)
+                    batchName = ""
+                    medium = ""
+                    observations = ""
+                    refresh++
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Save culture record")
+        }
+
+        HorizontalDivider()
+        Text("Records: ${records.length()}", style = MaterialTheme.typography.titleMedium)
+
+        for (i in records.length() - 1 downTo 0) {
+            val record = records.optJSONObject(i) ?: continue
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        workspaceText(record, "batch"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text("Medium: ${workspaceText(record, "medium")}")
+                    Text("Start date: ${workspaceText(record, "startDate")}")
+                    Text("Status: ${workspaceText(record, "status")}")
+                    Text(workspaceText(record, "observations"))
+
+                    TextButton(
+                        onClick = {
+                            val updated = readWorkspaceArray(context, key)
+                            updated.remove(i)
+                            saveWorkspaceArray(context, key, updated)
+                            refresh++
+                        }
+                    ) {
+                        Text("Delete record")
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun timelineStatus(dueDate: String, completed: Boolean): String {
+    if (completed) return "Completed"
+
+    val due = try {
+        LocalDate.parse(dueDate)
+    } catch (_: Exception) {
+        return "Date needs checking"
+    }
+
+    return when {
+        due.isBefore(LocalDate.now()) -> "Overdue"
+        due.isEqual(LocalDate.now()) -> "Due today"
+        else -> "Upcoming"
+    }
+}
+
+@Composable
+fun TimelineWorkspace(plant: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val key = remember(plant) { workspaceKey("timeline", plant) }
+
+    var taskName by remember { mutableStateOf("") }
+    var dueDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var details by remember { mutableStateOf("") }
+    var refresh by remember { mutableIntStateOf(0) }
+
+    val records = remember(plant, refresh) {
+        readWorkspaceArray(context, key)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("$plant Timeline & Reminders", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Create dated tasks and track their status. These are in-app records; " +
+                "Android notifications are not enabled by this screen."
+        )
+
+        workspaceField("Task name", taskName, { taskName = it })
+        workspaceField("Due date (YYYY-MM-DD)", dueDate, { dueDate = it })
+        workspaceField("Details", details, { details = it }, singleLine = false)
+
+        Button(
+            onClick = {
+                if (taskName.isNotBlank()) {
+                    val array = readWorkspaceArray(context, key)
+                    array.put(
+                        JSONObject()
+                            .put("task", taskName.trim())
+                            .put("dueDate", dueDate.trim())
+                            .put("details", details.trim())
+                            .put("completed", false)
+                            .put("history", JSONArray())
+                    )
+                    saveWorkspaceArray(context, key, array)
+                    taskName = ""
+                    details = ""
+                    refresh++
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Add timeline task")
+        }
+
+        HorizontalDivider()
+        Text("Tasks: ${records.length()}", style = MaterialTheme.typography.titleMedium)
+
+        for (i in records.length() - 1 downTo 0) {
+            val record = records.optJSONObject(i) ?: continue
+            val completed = record.optBoolean("completed", false)
+            val date = workspaceText(record, "dueDate")
+            val status = timelineStatus(date, completed)
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        workspaceText(record, "task"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text("Due: $date")
+                    Text("Status: $status")
+                    Text(workspaceText(record, "details"))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (!completed) {
+                            TextButton(
+                                onClick = {
+                                    val updated = readWorkspaceArray(context, key)
+                                    val item = updated.optJSONObject(i)
+                                    if (item != null) {
+                                        item.put("completed", true)
+                                        val history = item.optJSONArray("history") ?: JSONArray()
+                                        history.put(
+                                            JSONObject()
+                                                .put("action", "Completed")
+                                                .put("date", LocalDate.now().toString())
+                                        )
+                                        item.put("history", history)
+                                        saveWorkspaceArray(context, key, updated)
+                                        refresh++
+                                    }
+                                }
+                            ) {
+                                Text("Complete")
+                            }
+                        }
+
+                        TextButton(
+                            onClick = {
+                                val updated = readWorkspaceArray(context, key)
+                                updated.remove(i)
+                                saveWorkspaceArray(context, key, updated)
+                                refresh++
+                            }
+                        ) {
+                            Text("Delete")
+                        }
+                    }
+
+                    val history = record.optJSONArray("history") ?: JSONArray()
+                    if (history.length() > 0) {
+                        Text("History", style = MaterialTheme.typography.labelLarge)
+                        for (h in 0 until history.length()) {
+                            val event = history.optJSONObject(h) ?: continue
+                            Text(
+                                "${workspaceText(event, "action")} — " +
+                                    workspaceText(event, "date"),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
