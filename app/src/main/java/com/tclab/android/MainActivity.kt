@@ -717,4 +717,74 @@ fun ProtocolWorkspace(plant: String) {
                     message = "Protocol saved on this device."
                 }
             },
-            modifi
+            
+modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Save Protocol")
+        }
+
+        if (message.isNotBlank()) {
+            Text(message, color = LabMint, fontSize = 13.sp)
+        }
+
+        Text(
+            "SAVED PROTOCOLS (${protocols.size})",
+            color = LabMint,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp
+        )
+
+        if (protocols.isEmpty()) {
+            Text(
+                "No protocols saved for this plant yet.",
+                color = LabMuted,
+                fontSize = 13.sp
+            )
+        } else {
+            protocols.forEachIndexed { index, protocol ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = LabSurface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            "${index + 1}. ${protocol.title}",
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        if (protocol.source.isNotBlank()) {
+                            Text(
+                                "Source: ${protocol.source}",
+                                color = LabMint,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        if (protocol.notes.isNotBlank()) {
+                            Text(protocol.notes, color = LabMuted)
+                        }
+
+                        TextButton(
+                            onClick = {
+                                val updated = protocols.filterIndexed { i, _ ->
+                                    i != index
+                                }
+                                saveProtocols(context, plant, updated)
+                                protocols = updated
+                                message = "Protocol removed."
+                            }
+                        ) {
+                            Text("Delete protocol")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
