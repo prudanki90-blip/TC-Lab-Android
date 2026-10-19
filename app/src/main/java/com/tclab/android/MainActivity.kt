@@ -788,3 +788,26 @@ modifier = Modifier.fillMaxWidth()
     }
 }
 
+@Composable
+fun LabInput(
+    label: String,
+    value: String,
+    singleLine: Boolean = true,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 3,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LabMint,
+            focusedLabelColor = LabMint,
+            cursorColor = LabMint
+        )
+    )
+}
+
+
