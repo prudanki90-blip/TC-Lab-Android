@@ -74,25 +74,110 @@ private fun TCLabTheme(
 // The application navigation and screens will be connected
 // in the following sections of this file.
 
+
 @Composable
 private fun TCLabApp() {
     var selectedScreen by remember {
         mutableStateOf("Home")
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = TCLabBackground
-    ) {
-        // HomeScreen and the other screen implementations
-        // will be supplied in the following sections.
-        HomeScreen(
-            onNavigate = { destination ->
-                selectedScreen = destination
+    var batches by remember {
+        mutableStateOf<List<CultureBatch>>(emptyList())
+    }
+
+    when (selectedScreen) {
+        "Protocols", "Protocol Library" -> {
+            ProtocolLibraryScreen(
+                onBatchCreated = { newBatch ->
+                    batches = batches + newBatch
+                    selectedScreen = "Timeline"
+                },
+                onBack = {
+                    selectedScreen = "Home"
+                }
+            )
+        }
+
+        "Timeline", "Culture Timeline", "Tasks" -> {
+            CultureTimelineScreen(
+                batches = batches,
+                onCompleteTask = { batchId, taskId, note ->
+                    batches = batches.map { batch ->
+                        if (batch.id == batchId) {
+                            batch.copy(
+                                tasks = batch.tasks.map { task ->
+                                    if (task.id == taskId) {
+                                        task.copy(
+                                            completedAtMillis =
+                                                System.currentTimeMillis(),
+                                            completionNote = note,
+                                            status =
+                                                CultureTaskStatus.COMPLETED
+                                        )
+                                    } else {
+                                        task
+                                    }
+                                }
+                            )
+                        } else {
+                            batch
+                        }
+                    }
+                },
+                onRescheduleTask = { batchId, taskId, newTime, note ->
+                    batches = batches.map { batch ->
+                        if (batch.id == batchId) {
+                            batch.copy(
+                                tasks = batch.tasks.map { task ->
+                                    if (task.id == taskId) {
+                                        task.copy(
+                                            scheduledAtMillis = newTime,
+                                            status =
+                                                CultureTaskStatus.RESCHEDULED,
+                                            completionNote = note
+                                        )
+                                    } else {
+                                        task
+                                    }
+                                }
+                            )
+                        } else {
+                            batch
+                        }
+                    }
+                },
+                onBack = {
+                    selectedScreen = "Home"
+                }
+            )
+        }
+
+        else -> {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = TCLabBackground
+            ) {
+                HomeScreen(
+                    batches = batches,
+                    onNavigate = { destination ->
+                        selectedScreen = when (destination) {
+                            "Protocols",
+                            "Protocol Library" -> "Protocols"
+
+                            "Timeline",
+                            "Culture Timeline",
+                            "Tasks" -> "Timeline"
+
+                            else -> "Home"
+                        }
+                    }
+                )
             }
-        )
+        }
     }
 }
+
+    
 
 /*
  * ============================================================
