@@ -70,9 +70,7 @@ private fun TCLabTheme(
     )
 }
 
-// The application navigation and screens will be connected
-// in the following sections of this file.
-
+// The application navigation and screens are connected below.
 
 @Composable
 fun TCLabApp() {
@@ -133,7 +131,6 @@ fun TCLabApp() {
         }
 
         "Calculator" -> {
-            // CalculatorScreen already has its own Back control.
             CalculatorScreen(
                 onBack = {
                     selectedScreen = "Plant Workspace"
@@ -169,6 +166,7 @@ fun TCLabApp() {
 
         "Protocols" -> {
             ProtocolLibraryScreen(
+                plant = selectedPlant,
                 onBatchCreated = { newBatch ->
                     batches = batches.filterNot {
                         it.id == newBatch.id
@@ -184,6 +182,7 @@ fun TCLabApp() {
 
         "Timeline" -> {
             CultureTimelineScreen(
+                plant = selectedPlant,
                 batches = batches,
                 onCompleteTask = { batchId, taskId, note ->
                     batches = batches.map { batch ->
@@ -250,7 +249,6 @@ fun TCLabApp() {
         }
 
         else -> {
-            // Render a fallback without changing state during composition.
             WorkspacePage(
                 title = "TC Lab",
                 onBack = {
@@ -280,7 +278,6 @@ fun TCLabApp() {
         }
     }
 }
-
 
 @Composable
 private fun WorkspacePage(
@@ -318,13 +315,6 @@ private fun WorkspacePage(
         }
     }
 }
-
-
-
-
-
-
-    
 
 /*
  * ============================================================
@@ -378,7 +368,11 @@ data class CultureBatch(
     val startedAtMillis: Long,
     val expectedEndAtMillis: Long,
     val notes: String = "",
-    val tasks: List<CultureTimelineTask> = emptyList()
+    val tasks: List<CultureTimelineTask> = emptyList(),
+
+    // New field: associate each batch with the plant that owns it.
+    // Existing records without this field are preserved as Unassigned.
+    val plant: String = "Unassigned"
 )
 
 data class CultureTaskHistory(
@@ -560,13 +554,13 @@ fun generateCultureTimeline(
 
 /**
  * Creates a batch and generates its initial timeline.
- * Persistent storage will be implemented in Section 4.
  */
 fun createCultureBatch(
     name: String,
     protocol: CultureProtocol,
     startAtMillis: Long = System.currentTimeMillis(),
-    notes: String = ""
+    notes: String = "",
+    plant: String = "Unassigned"
 ): CultureBatch {
 
     val batchId = createId("batch")
@@ -600,7 +594,8 @@ fun createCultureBatch(
         startedAtMillis = startAtMillis,
         expectedEndAtMillis = endAtMillis,
         notes = notes.trim(),
-        tasks = tasks
+        tasks = tasks,
+        plant = plant.trim().ifBlank { "Unassigned" }
     )
 }
 
@@ -757,6 +752,9 @@ class CultureLabStore(context: Context) {
             put("expectedEndAtMillis", batch.expectedEndAtMillis)
             put("notes", batch.notes)
 
+            // Save the plant association with the batch.
+            put("plant", batch.plant)
+
             val taskArray = JSONArray()
 
             batch.tasks.forEach { task ->
@@ -789,7 +787,11 @@ class CultureLabStore(context: Context) {
             expectedEndAtMillis =
                 json.optLong("expectedEndAtMillis"),
             notes = json.optString("notes"),
-            tasks = tasks
+            tasks = tasks,
+
+            // Old records do not contain "plant". Preserve them.
+            plant = json.optString("plant", "Unassigned")
+                .ifBlank { "Unassigned" }
         )
     }
 
@@ -875,10 +877,6 @@ class CultureLabStore(context: Context) {
 
 object CultureScheduler {
 
-    /**
-     * Calculates the current status of a task.
-     * Completed tasks retain their completed status.
-     */
     fun calculateStatus(
         task: CultureTimelineTask,
         nowMillis: Long = System.currentTimeMillis()
@@ -902,9 +900,6 @@ object CultureScheduler {
         }
     }
 
-    /**
-     * Updates task statuses using the current device time.
-     */
     fun refreshTasks(
         tasks: List<CultureTimelineTask>,
         nowMillis: Long = System.currentTimeMillis()
@@ -917,9 +912,6 @@ object CultureScheduler {
         }
     }
 
-    /**
-     * Returns tasks in chronological order.
-     */
     fun sortTasks(
         tasks: List<CultureTimelineTask>
     ): List<CultureTimelineTask> {
@@ -933,9 +925,6 @@ object CultureScheduler {
         )
     }
 
-    /**
-     * Finds tasks requiring attention.
-     */
     fun dueTasks(
         tasks: List<CultureTimelineTask>,
         nowMillis: Long = System.currentTimeMillis()
@@ -947,9 +936,6 @@ object CultureScheduler {
         }
     }
 
-    /**
-     * Completes a task and records the action.
-     */
     fun completeTask(
         batch: CultureBatch,
         taskId: String,
@@ -988,9 +974,6 @@ object CultureScheduler {
         return updatedBatch
     }
 
-    /**
-     * Reschedules a task without losing its original date.
-     */
     fun rescheduleTask(
         batch: CultureBatch,
         taskId: String,
@@ -1037,9 +1020,6 @@ object CultureScheduler {
         return updatedBatch
     }
 
-    /**
-     * Adds a user-defined task to an existing batch.
-     */
     fun addTask(
         batch: CultureBatch,
         title: String,
@@ -1075,9 +1055,6 @@ object CultureScheduler {
         return updatedBatch
     }
 
-    /**
-     * Dashboard summary for a batch.
-     */
     fun summarize(
         batch: CultureBatch,
         nowMillis: Long = System.currentTimeMillis()
@@ -1554,6 +1531,7 @@ private fun EmptyDashboardCard(
 
 @Composable
 private fun ProtocolLibraryScreen(
+    plant: String,
     onBatchCreated: (CultureBatch) -> Unit,
     onBack: () -> Unit
 ) {
@@ -1600,7 +1578,7 @@ private fun ProtocolLibraryScreen(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = "Protocol Library",
+                    text = "$plant Protocol Library",
                     fontSize = 23.sp,
                     fontWeight = FontWeight.Bold,
                     color = TCLabPrimary
@@ -1608,7 +1586,7 @@ private fun ProtocolLibraryScreen(
             }
 
             Text(
-                text = "Choose a template to generate a batch timeline.",
+                text = "Plant: $plant. Choose a template to generate a batch timeline for this plant.",
                 color = TCLabMuted,
                 fontSize = 14.sp
             )
@@ -1723,7 +1701,8 @@ private fun ProtocolLibraryScreen(
                                     protocol = selectedProtocol,
                                     startAtMillis =
                                         System.currentTimeMillis(),
-                                    notes = batchNotes
+                                    notes = batchNotes,
+                                    plant = plant
                                 )
 
                                 onBatchCreated(newBatch)
@@ -1845,15 +1824,35 @@ private fun ProtocolLibraryCard(
     }
 }
 
+/*
+ * ============================================================
+ * SECTION 8: PLANT-SCOPED CULTURE TIMELINE
+ * ============================================================
+ */
+
 @Composable
 fun CultureTimelineScreen(
+    plant: String,
     batches: List<CultureBatch>,
     onCompleteTask: (String, String, String) -> Unit,
     onRescheduleTask: (String, String, Long, String) -> Unit,
     onBack: () -> Unit
 ) {
-    var selectedBatchId by remember {
-        mutableStateOf(batches.firstOrNull()?.id ?: "")
+    // Show this plant's batches and keep older, unassigned records
+    // accessible without pretending that they belong to this plant.
+    val displayedBatches = batches.filter {
+        it.plant == plant || it.plant == "Unassigned"
+    }
+
+    var selectedBatchId by remember(plant) {
+        mutableStateOf(displayedBatches.firstOrNull()?.id.orEmpty())
+    }
+
+    LaunchedEffect(displayedBatches, plant) {
+        if (displayedBatches.none { it.id == selectedBatchId }) {
+            selectedBatchId =
+                displayedBatches.firstOrNull()?.id.orEmpty()
+        }
     }
 
     var reschedulingTaskId by remember {
@@ -1868,7 +1867,7 @@ fun CultureTimelineScreen(
         mutableStateOf("")
     }
 
-    val selectedBatch = batches.firstOrNull {
+    val selectedBatch = displayedBatches.firstOrNull {
         it.id == selectedBatchId
     }
 
@@ -1894,22 +1893,31 @@ fun CultureTimelineScreen(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = "Culture Timeline",
+                text = "$plant Culture Timeline",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
         }
 
-        if (batches.isEmpty()) {
+        if (batches.any { it.plant == "Unassigned" }) {
+            Text(
+                text = "Older saved batches without a recorded plant are preserved as Unassigned.",
+                color = TCLabWarning,
+                fontSize = 13.sp
+            )
+        }
+
+        if (displayedBatches.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "No culture batches yet",
+                        text = "No culture batches for $plant yet",
                         style = MaterialTheme.typography.titleMedium
                     )
+
                     Text(
                         text = "Create a batch from the Protocol Library to generate its timeline."
                     )
@@ -1921,7 +1929,7 @@ fun CultureTimelineScreen(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            batches.forEach { batch ->
+            displayedBatches.forEach { batch ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1954,9 +1962,13 @@ fun CultureTimelineScreen(
                             text = batch.name,
                             fontWeight = FontWeight.Bold
                         )
+
+                        Text(text = "Plant: ${batch.plant}")
+
                         Text(
                             text = "Protocol: ${batch.protocolId}"
                         )
+
                         Text(
                             text = "Tasks: ${batch.tasks.size}"
                         )
@@ -1971,6 +1983,10 @@ fun CultureTimelineScreen(
                     text = selectedBatch.name,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Plant: ${selectedBatch.plant}"
                 )
 
                 Text(
@@ -2174,5 +2190,3 @@ fun CultureTimelineScreen(
         }
     }
 }
-
-
