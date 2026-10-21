@@ -516,4 +516,196 @@ fun TimelineWorkspace(plant: String) {
             }
         }
     }
+
+
+
+
+@Composable
+fun PlantSelectionScreen(
+    onSelectPlant: (String) -> Unit
+) {
+    val plants = listOf(
+        "Apple",
+        "Banana",
+        "Passion fruit",
+        "Breadfruit",
+        "Pineapple"
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF101820)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "TC LAB",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color(0xFF62D6A5)
+            )
+
+            Text(
+                text = "Plant Tissue Culture Laboratory",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+
+            Text(
+                text = "Choose a plant to open its laboratory workspace.",
+                color = Color(0xFFB0BEC9)
+            )
+
+            plants.forEach { plant ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1B2935)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = plant,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Button(
+                            onClick = { onSelectPlant(plant) }
+                        ) {
+                            Text("Open")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlantWorkspaceScreen(
+    plant: String,
+    onBack: () -> Unit,
+    onOpenProtocols: () -> Unit,
+    onOpenCalculator: () -> Unit,
+    onOpenNotebook: () -> Unit,
+    onOpenCultures: () -> Unit,
+    onOpenTimeline: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF101820)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            TextButton(onClick = onBack) {
+                Text("← Back to plant selection")
+            }
+
+            Text(
+                text = plant,
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color(0xFF62D6A5)
+            )
+
+            Text(
+                text = "Laboratory Workspace",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+
+            Text(
+                text = "Choose a laboratory tool or record.",
+                color = Color(0xFFB0BEC9)
+            )
+
+            WorkspaceMenuItem(
+                title = "Protocol Library",
+                description = "Browse protocols and start a culture batch.",
+                onClick = onOpenProtocols
+            )
+
+            WorkspaceMenuItem(
+                title = "Culture Calculator",
+                description = "Open the existing laboratory calculator.",
+                onClick = onOpenCalculator
+            )
+
+            WorkspaceMenuItem(
+                title = "Research Notebook",
+                description = "Record research notes for $plant.",
+                onClick = onOpenNotebook
+            )
+
+            WorkspaceMenuItem(
+                title = "Culture Records",
+                description = "Manage records for $plant.",
+                onClick = onOpenCultures
+            )
+
+            WorkspaceMenuItem(
+                title = "Culture Timeline",
+                description = "Review scheduled tasks and progress.",
+                onClick = onOpenTimeline
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceMenuItem(
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1B2935)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF62D6A5)
+            )
+
+            Text(
+                text = description,
+                color = Color(0xFFB0BEC9)
+            )
+
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Open")
+            }
+        }
+    }
+}
+
+
+    
 }
