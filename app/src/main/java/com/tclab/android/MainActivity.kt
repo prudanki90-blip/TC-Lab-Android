@@ -75,9 +75,8 @@ private fun TCLabTheme(
 // in the following sections of this file.
 
 
-
 @Composable
-private fun TCLabApp() {
+fun TCLabApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
 
     val store = remember(context) {
@@ -85,20 +84,93 @@ private fun TCLabApp() {
     }
 
     var selectedScreen by remember {
-        mutableStateOf("Home")
+        mutableStateOf("Plant Selection")
+    }
+
+    var selectedPlant by remember {
+        mutableStateOf("Apple")
     }
 
     var batches by remember(context, store) {
         mutableStateOf(store.loadBatches())
     }
 
-    // Persist every batch-state change locally.
     LaunchedEffect(batches) {
         store.saveBatches(batches)
     }
 
     when (selectedScreen) {
-        "Protocols", "Protocol Library" -> {
+        "Plant Selection" -> {
+            PlantSelectionScreen(
+                onSelectPlant = { plant ->
+                    selectedPlant = plant
+                    selectedScreen = "Plant Workspace"
+                }
+            )
+        }
+
+        "Plant Workspace" -> {
+            PlantWorkspaceScreen(
+                plant = selectedPlant,
+                onBack = {
+                    selectedScreen = "Plant Selection"
+                },
+                onOpenProtocols = {
+                    selectedScreen = "Protocols"
+                },
+                onOpenCalculator = {
+                    selectedScreen = "Calculator"
+                },
+                onOpenNotebook = {
+                    selectedScreen = "Notebook"
+                },
+                onOpenCultures = {
+                    selectedScreen = "Culture Records"
+                },
+                onOpenTimeline = {
+                    selectedScreen = "Timeline"
+                }
+            )
+        }
+
+        "Calculator" -> {
+            WorkspacePage(
+                title = "Calculator",
+                onBack = {
+                    selectedScreen = "Plant Workspace"
+                }
+            ) {
+                CalculatorScreen(
+                    onBack = {
+                        selectedScreen = "Plant Workspace"
+                    }
+                )
+            }
+        }
+
+        "Notebook" -> {
+            WorkspacePage(
+                title = "$selectedPlant Research Notebook",
+                onBack = {
+                    selectedScreen = "Plant Workspace"
+                }
+            ) {
+                NotebookWorkspace(plant = selectedPlant)
+            }
+        }
+
+        "Culture Records" -> {
+            WorkspacePage(
+                title = "$selectedPlant Culture Records",
+                onBack = {
+                    selectedScreen = "Plant Workspace"
+                }
+            ) {
+                CultureRecordWorkspace(plant = selectedPlant)
+            }
+        }
+
+        "Protocols" -> {
             ProtocolLibraryScreen(
                 onBatchCreated = { newBatch ->
                     batches = batches.filterNot {
@@ -108,12 +180,12 @@ private fun TCLabApp() {
                     selectedScreen = "Timeline"
                 },
                 onBack = {
-                    selectedScreen = "Home"
+                    selectedScreen = "Plant Workspace"
                 }
             )
         }
 
-        "Timeline", "Culture Timeline", "Tasks", "Batches" -> {
+        "Timeline" -> {
             CultureTimelineScreen(
                 batches = batches,
                 onCompleteTask = { batchId, taskId, note ->
@@ -147,7 +219,6 @@ private fun TCLabApp() {
                 },
                 onRescheduleTask = {
                     batchId, taskId, newTime, note ->
-
                     batches = batches.map { batch ->
                         if (batch.id != batchId) {
                             batch
@@ -176,36 +247,57 @@ private fun TCLabApp() {
                     )
                 },
                 onBack = {
-                    selectedScreen = "Home"
+                    selectedScreen = "Plant Workspace"
                 }
             )
         }
 
         else -> {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = TCLabBackground
-            ) {
-                HomeScreen(
-                    batches = batches,
-                    onNavigate = { destination ->
-                        selectedScreen = when (destination) {
-                            "Protocols",
-                            "Protocol Library" -> "Protocols"
-
-                            "Timeline",
-                            "Culture Timeline",
-                            "Tasks",
-                            "Batches" -> "Timeline"
-
-                            else -> "Home"
-                        }
-                    }
-                )
-            }
+            selectedScreen = "Plant Selection"
         }
     }
 }
+
+@Composable
+private fun WorkspacePage(
+    title: String,
+    onBack: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(TCLabBackground)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onBack) {
+                Text("← Back")
+            }
+
+            Text(
+                text = title,
+                color = TCLabPrimary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
+            content()
+        }
+    }
+}
+
+
+
+
 
 
     
