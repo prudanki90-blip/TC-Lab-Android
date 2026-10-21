@@ -134,18 +134,12 @@ fun TCLabApp() {
         }
 
         "Calculator" -> {
-            WorkspacePage(
-                title = "Calculator",
+            // CalculatorScreen already has its own Back control.
+            CalculatorScreen(
                 onBack = {
                     selectedScreen = "Plant Workspace"
                 }
-            ) {
-                CalculatorScreen(
-                    onBack = {
-                        selectedScreen = "Plant Workspace"
-                    }
-                )
-            }
+            )
         }
 
         "Notebook" -> {
@@ -155,7 +149,9 @@ fun TCLabApp() {
                     selectedScreen = "Plant Workspace"
                 }
             ) {
-                NotebookWorkspace(plant = selectedPlant)
+                NotebookWorkspace(
+                    plant = selectedPlant
+                )
             }
         }
 
@@ -166,7 +162,9 @@ fun TCLabApp() {
                     selectedScreen = "Plant Workspace"
                 }
             ) {
-                CultureRecordWorkspace(plant = selectedPlant)
+                CultureRecordWorkspace(
+                    plant = selectedPlant
+                )
             }
         }
 
@@ -253,10 +251,37 @@ fun TCLabApp() {
         }
 
         else -> {
-            selectedScreen = "Plant Selection"
+            // Render a fallback without changing state during composition.
+            WorkspacePage(
+                title = "TC Lab",
+                onBack = {
+                    selectedScreen = "Plant Selection"
+                }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Choose a plant to continue.",
+                        color = TCLabText
+                    )
+
+                    Button(
+                        onClick = {
+                            selectedScreen = "Plant Selection"
+                        }
+                    ) {
+                        Text("Plant Selection")
+                    }
+                }
+            }
         }
     }
 }
+
 
 @Composable
 private fun WorkspacePage(
