@@ -1,4 +1,3 @@
-
 package com.tclab.android
 
 import android.content.Context
@@ -50,6 +49,7 @@ private fun workspaceText(
     key: String
 ): String = obj.optString(key, "")
 
+@Composable
 private fun workspaceField(
     label: String,
     value: String,
@@ -514,4 +514,3 @@ fun TimelineWorkspace(plant: String) {
         }
     }
 }
-
