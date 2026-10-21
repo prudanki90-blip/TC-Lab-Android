@@ -1,11 +1,13 @@
 
 name: Build TC Lab Android APK
-
 on:
   push:
     branches:
       - main
+      - feature/protocol-workspace
   workflow_dispatch:
+
+  
 
 permissions:
   contents: read
