@@ -1,4 +1,3 @@
-
 package com.tclab.android
 
 import android.content.Context
