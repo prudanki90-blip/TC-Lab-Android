@@ -1,4 +1,7 @@
 package com.tclab.android
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 
 import android.content.Context
 import android.content.SharedPreferences
